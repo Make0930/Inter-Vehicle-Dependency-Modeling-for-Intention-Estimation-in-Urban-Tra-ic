@@ -1,0 +1,23 @@
+###
+# Parameters for the prediction pipeline
+###
+
+# general options
+debug: true
+visualize: true
+
+# map parameters
+lanelet_map: /home/mark/Master_Thesis/interaction_dataset/maps/DR_DEU_Roundabout_OF.osm
+lat_origin: 0.
+lon_origin: 0.
+
+# map processing parameters
+critical_area_sim_thresh: 3
+
+# dataset parameters
+interaction_trackfile: /home/mark/Master_Thesis/interaction_dataset/recorded_trackfiles/DR_DEU_Roundabout_OF/vehicle_tracks_003.csv
+
+# output parameters
+predictions_out: /home/quehl/Documents/diss_evaluation/predictions_out.csv
+critical_areas_file: /home/quehl/Documents/diss_evaluation/criticalAreas/cas01.yaml
+

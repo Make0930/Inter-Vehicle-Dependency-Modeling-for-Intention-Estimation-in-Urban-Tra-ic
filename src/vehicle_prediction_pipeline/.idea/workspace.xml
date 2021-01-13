@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="5fae4e0e-927b-413d-83a5-19407501f4b1" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/processing_pipeline_edit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../../.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.gitlab-ci.yml" beforeDir="false" afterPath="$PROJECT_DIR$/../../.gitlab-ci.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../../CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../CODEOWNERS" beforeDir="false" afterPath="$PROJECT_DIR$/../../CODEOWNERS" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../config/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../../config/config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../include/vehicle_prediction_pipeline/internal/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../../include/vehicle_prediction_pipeline/internal/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../package.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../package.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Interactive-HMM/TimeInhomogenousHMM.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Interactive-HMM/hidden_markov_chain.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Interactive-HMM/hidden_markov_chain_reference.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Interactive-HMM/incremental_markov_chain.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Interactive-HMM/markov_layer.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Interactive-HMM/probability_matrix.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Interactive-HMM/probability_vector.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Interactive-HMM/testhmm.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../deprecated/conflict_analysis.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../interaction_dataset_interface/dataset_reader.py" beforeDir="false" afterPath="$PROJECT_DIR$/../interaction_dataset_interface/dataset_reader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../interaction_dataset_interface/dataset_types.py" beforeDir="false" afterPath="$PROJECT_DIR$/../interaction_dataset_interface/dataset_types.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../interaction_dataset_interface/interaction_dataset_utilities.py" beforeDir="false" afterPath="$PROJECT_DIR$/../interaction_dataset_interface/interaction_dataset_utilities.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../map_analyzation/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/../map_analyzation/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../map_analyzation/map_analysis_loader.py" beforeDir="false" afterPath="$PROJECT_DIR$/../map_analyzation/map_analysis_loader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../map_analyzation/map_analysis_visualization.py" beforeDir="false" afterPath="$PROJECT_DIR$/../map_analyzation/map_analysis_visualization.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../map_analyzation/map_analysis_writer.py" beforeDir="false" afterPath="$PROJECT_DIR$/../map_analyzation/map_analysis_writer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../map_analyzation/map_analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/../map_analyzation/map_analyzer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/__main__.py" beforeDir="false" afterPath="$PROJECT_DIR$/__main__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/argparser.py" beforeDir="false" afterPath="$PROJECT_DIR$/argparser.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/prediction_utilities.py" beforeDir="false" afterPath="$PROJECT_DIR$/prediction_utilities.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/predictiontypes.py" beforeDir="false" afterPath="$PROJECT_DIR$/predictiontypes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/processing_pipeline.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../visualization/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/../visualization/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../visualization/drawing_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/../visualization/drawing_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../visualization/map_visualizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/../visualization/map_visualizer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../visualization/visualizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/../visualization/visualizer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../test/test_parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../test/test_parser.py" afterDir="false" />
+    </list>
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="96" />
+    <option name="y" value="27" />
+    <option name="width" value="1400" />
+    <option name="height" value="1000" />
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectView">
+    <navigator proportions="" version="1">
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="Scope" />
+      <pane id="ProjectPane" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$USER_HOME$/gitlab-Repo/vehicle-status-visualization" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="5fae4e0e-927b-413d-83a5-19407501f4b1" name="Default Changelist" comment="" />
+      <created>1608642320351</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1608642320351</updated>
+      <workItem from="1608642323185" duration="40000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TimeTrackingManager">
+    <option name="totallyTimeSpent" value="40000" />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="67" y="25" width="1853" height="1055" extended-state="6" />
+    <layout>
+      <window_info id="Favorites" side_tool="true" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24958494" />
+      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info anchor="bottom" id="Docker" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Database Changes" />
+      <window_info anchor="bottom" id="Version Control" />
+      <window_info anchor="bottom" id="Python Console" />
+      <window_info anchor="bottom" id="Terminal" />
+      <window_info anchor="bottom" id="Event Log" side_tool="true" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Run" order="2" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="right" id="SciView" />
+      <window_info anchor="right" id="Database" />
+      <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+    </layout>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+</project>
