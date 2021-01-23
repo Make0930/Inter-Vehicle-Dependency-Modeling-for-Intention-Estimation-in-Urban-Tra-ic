@@ -1,5 +1,5 @@
 import os
-import processing_pipeline_edit
+import processing_pipeline
 import threading # only for plots
 import map_analyzer
 import lanelet2
@@ -54,14 +54,18 @@ def main() :
 
     visualize = args['visualize']
 
-    # random select a track from track_dictionary
+    plot_absolute_orientation = False
+    # when True, plot all possible paths' orientation and the car real orientation
+    # when False, plot the differences between all paths' orientation and the car orientation
+
+
     while True:
         random_trackid = random.randint(1, len(track_dictionary))
         if random_trackid in track_dictionary:
             print('trackid %s is found' % (random_trackid))
             break
 
-    random_trackid = 14
+    #random_trackid = 7
     print(random_trackid)
 
     if visualize:
@@ -76,6 +80,7 @@ def main() :
         plt.xlim(track_dictionary[random_trackid].time_stamp_ms_first,
                  track_dictionary[random_trackid].time_stamp_ms_last)
         plt.ylim(-3.2, 3.2)
+        plt.plot([track_dictionary[random_trackid].time_stamp_ms_first,track_dictionary[random_trackid].time_stamp_ms_last],[0,0],c = 'k')
         colors = ['g', 'b', 'c', 'm', 'y', 'k', 'orange', 'aqua', 'lime']
         markers = ['x', '+', 'v', '^', '1', '2', '3', '4', '5']
         plt.ion()
@@ -96,9 +101,8 @@ def main() :
             if track.track_id not in activeObjects:
                 vehicleState = predictiontypes.Vehicle(objectId=track.track_id, motionState=currentMs,
                                                        width=track.width, length=track.length)
-                matchings = prediction_utilities.matchMotionState(laneletmap,
-                                                                  currentMs)  # match the car to several possible lanelets
                 possiblePathsWithInfo = []
+                matchings = prediction_utilities.matchMotionState(laneletmap,currentMs)  # match the car to several possible lanelets
                 for match in matchings:  # for each start lanelet
                     possiblePathParams.routingCostLimit = lanelet2.geometry.approximatedLength2d(match.lanelet) + 150
                     paths = map(lambda x: predictiontypes.PathWithInformation(laneletPath=x, caDict=laneletCaDict),
@@ -123,26 +127,50 @@ def main() :
             prediction_utilities.cleanDrawingDicts(activeObjects, patchesDict, textDict)
             # fig.canvas.draw()
             title_text.set_text("\nts = {}".format(timestamp))
-            plt.sca(axes2)
             if random_trackid in activeObjects.keys():
-                plt.scatter(timestamp, track_dictionary[random_trackid].motion_states[timestamp].psi_rad, c='r', s=1,
-                            label='vehicle %s orientation' % random_trackid)
+                plt.sca(axes2)
+                basic_point = lanelet2.core.BasicPoint2d(
+                    track_dictionary[random_trackid].motion_states[timestamp].x,
+                    track_dictionary[random_trackid].motion_states[timestamp].y)
+                in_area = 0
+                for i in range(len(criticalAreas.critical_areas)):
+                    area_center = lanelet2.core.BasicPoint2d(criticalAreas.critical_areas[i].x,criticalAreas.critical_areas[i].y)
+                    if lanelet2.geometry.distance(basic_point,area_center) <= criticalAreas.critical_areas[i].radius:
+                        plt.scatter(timestamp, track_dictionary[random_trackid].motion_states[timestamp].psi_rad, c='k',
+                                    s=10,label= 'vehicle %s in critical area' % random_trackid)
+                        in_area = 1
+                        break
+                if in_area == 0:
+                    plt.scatter(timestamp, track_dictionary[random_trackid].motion_states[timestamp].psi_rad, c='r',
+                                s=1,label='vehicle %s orientation' % random_trackid)
 
-                basicPoint = lanelet2.core.BasicPoint2d(track_dictionary[random_trackid].motion_states[timestamp].x,
-                                                        track_dictionary[random_trackid].motion_states[timestamp].y)
                 for i in range(len(activeObjects[random_trackid].pathsWithInformation)):  # for each path
-                    arcCoordinates = lanelet2.geometry.toArcCoordinates(
-                        activeObjects[random_trackid].pathsWithInformation[i].centerline, basicPoint)
-                    pathOrientation = activeObjects[random_trackid].pathsWithInformation[i].getOrientationAtArcLength(
-                        arcCoordinates.length)
-                    plt.scatter(timestamp, pathOrientation, c=colors[i], s=10, label='path orientation %s' % (i),
-                                marker=markers[i])
+                    if (track_dictionary[random_trackid].motion_states[timestamp].psi_rad * activeObjects[random_trackid].pathOrientation[i][1] ) < 0 \
+                            and (abs(activeObjects[random_trackid].pathOrientation[i][1]) + abs(track_dictionary[random_trackid].motion_states[timestamp].psi_rad)) > math.pi:
+                        if activeObjects[random_trackid].pathOrientation[i][1] > 0:
+                            arc_difference = 2* math.pi -  activeObjects[random_trackid].pathOrientation[i][1] \
+                                             + track_dictionary[random_trackid].motion_states[timestamp].psi_rad
+                        else:
+                            arc_difference = 2* math.pi +  activeObjects[random_trackid].pathOrientation[i][1] \
+                                             - track_dictionary[random_trackid].motion_states[timestamp].psi_rad
+                    else:
+                        arc_difference = abs(activeObjects[random_trackid].pathOrientation[i][1]
+                                             - track_dictionary[random_trackid].motion_states[timestamp].psi_rad)
+
+                    if plot_absolute_orientation:
+                        plt.title('Absolute orientaion for all paths')
+                        plt.scatter(timestamp, activeObjects[random_trackid].centerlineIndexAlongPaths[i][1] ,
+                                    c=colors[i], s=10, label='path orientation %s' % (i),marker=markers[i])
+                    else:
+                        plt.title('Orientation difference for all paths')
+                        plt.scatter(timestamp, arc_difference, c=colors[i],s=10, label='path orientation %s' % (i),marker=markers[i])
 
 
             end_time = time.time()
             if timestamp == track_dictionary[random_trackid].time_stamp_ms_first:
                 plt.legend()
             plt.pause(max(0.001, timestamp_delta_ms / 1000. - (end_time - start_time)))
+
         timestamp += timestamp_delta_ms
     if visualize:
         plt.ioff()

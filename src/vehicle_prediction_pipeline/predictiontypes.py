@@ -6,7 +6,7 @@ import numpy as np
 from lanelet2.routing import LaneletPath
 from lanelet2.core import ConstLanelet,ConstLineString2d
 import dataset_types
-import processing_pipeline_edit
+import processing_pipeline
 
 def short_id(id64):
     """Given a 64-bit id, make a shorter 16-bit one.
@@ -156,14 +156,14 @@ class PathWithInformation:
         self.centerline = lanelet2.geometry.to2D(self.laneletSequence.centerline)   #cut all the laneltes in this path to smallest line pieces,  made of many points
         self.criticalAreasWithCoordinates = []
         self.lengthAccumulations = []
-        for ll in laneletPath:
+        for ll in laneletPath:  # for each lanelet in the path
             if ll.id in caDict:      #if the lanelet is in conflicting area
                 for ca in caDict[ll.id]:    #caDict is a dictionary for all conflict areas in the map, key is lanelet id,
                     basicCaCenter = lanelet2.core.BasicPoint2d(ca.x, ca.y)    # center of conflict area
                     coordinate = lanelet2.geometry.toArcCoordinates(self.centerline, basicCaCenter)
-                    self.criticalAreasWithCoordinates.append((ca, coordinate))
-        self.criticalAreasWithCoordinates.sort(key=lambda x: x[1].length)
-        centerlinecopy = lanelet2.core.LineString2d(0,[])
+                    self.criticalAreasWithCoordinates.append((ca, coordinate))     # (two elements, first is critialarea name, second is the arccoordinate of the area along the path
+        self.criticalAreasWithCoordinates.sort(key=lambda x: x[1].length)         # sort the area according to the arc -length from  the path start point
+        centerlinecopy = lanelet2.core.LineString2d(0,[])   # a series of linestring, becomes longer
         for p in self.centerline:
             point = lanelet2.core.Point2d(0,p.x,p.y)
             centerlinecopy.append(point)
@@ -172,6 +172,8 @@ class PathWithInformation:
     def getOrientationAtArcLength(self, arcLength):
         assert (arcLength >= 0)
         nextIndex = len(self.lengthAccumulations) - 1
+        #print(len(self.centerline))
+        #print(len(self.lengthAccumulations))
         for i in range(len(self.lengthAccumulations)):
             if self.lengthAccumulations[i] > arcLength:
                 nextIndex = max(1, i)
@@ -205,7 +207,7 @@ class Vehicle:
 
     def updateArcCoordinates(self):
         self.arcCoordinatesAlongPaths = []
-        for pathWithInfo in self.pathsWithInformation:  #len(pathWithInfo.centerline) = 174
+        for pathWithInfo in self.pathsWithInformation:  #len(pathWithInfo.centerline) = 174   for each path
             basicMsCenter = lanelet2.core.BasicPoint2d(self.currentState.motionState.x, self.currentState.motionState.y)  #x,y center of car
             # print(lanelet2.geometry.toArcCoordinates(pathWithInfo.centerline, basicMsCenter).distance) # the distance between car and path
             # print(lanelet2.geometry.toArcCoordinates(pathWithInfo.centerline, basicMsCenter).length)   # the car move length along the path
@@ -213,6 +215,42 @@ class Vehicle:
                 lanelet2.geometry.toArcCoordinates(pathWithInfo.centerline, basicMsCenter))
 
             #self.laneletMatchings.append(processing_pipeline.startProcessingPipeline.match)
+    def updatepathOrientation(self):
+        self.pathOrientation = [[0, 0] for i in range(len(self.pathsWithInformation))]
+        for j in range(len(self.pathsWithInformation)):    # for each path     j = path id
+            arcLength = self.arcCoordinatesAlongPaths[j].length
+            assert (arcLength >= 0)
+            nextIndex = len(self.pathsWithInformation[j].lengthAccumulations) - 1
+            for i in range(len(self.pathsWithInformation[j].lengthAccumulations)):
+                if self.pathsWithInformation[j].lengthAccumulations[i] > arcLength:
+                    nextIndex = max(1, i)
+                    self.pathOrientation[j][0] = nextIndex
+                    break
+            self.pathOrientation[j][1] =math.atan2(self.pathsWithInformation[j].centerline[nextIndex].y - self.pathsWithInformation[j].centerline[nextIndex - 1].y,
+                              self.pathsWithInformation[j].centerline[nextIndex].x - self.pathsWithInformation[j].centerline[nextIndex - 1].x)
+
+
+    def updatepossiblepaths(self):
+         for arcCoordinate in self.arcCoordinatesAlongPaths:  #check each path
+             if abs(arcCoordinate.distance) > 3.3:
+                 del self.pathOrientation[self.arcCoordinatesAlongPaths.index(arcCoordinate)]
+                 del self.pathsWithInformation[self.arcCoordinatesAlongPaths.index(arcCoordinate)]
+                 del self.arcCoordinatesAlongPaths[self.arcCoordinatesAlongPaths.index(arcCoordinate)]
+
+
+        # for path in self.pathsWithInformation:  #check each path
+        #     i = 0
+        #     for ll_index in range(len(self.laneletMatchings)):    #for each current lanelet id
+        #         if (self.laneletMatchings[ll_index].lanelet in path.laneletSequence):
+        #             i = 1
+        #             break
+        #     if i == 0:
+        #         del self.arcCoordinatesAlongPaths[self.pathsWithInformation.index(path)]
+        #         del self.centerlineIndexAlongPaths[self.pathsWithInformation.index(path)]
+        #         del self.pathsWithInformation[self.pathsWithInformation.index(path)]
+
+
+
 
 
 
@@ -220,20 +258,25 @@ class Vehicle:
 
     def __init__(self, objectId=-1, motionState=MotionState(-1),
                  pathsWithInformation=[],
-                 laneletMatchings=[], width=2, length=4):
+                 laneletMatchings=[], arcCoordinatesAlongPaths = [],pathOrientation = [],width=2, length=4):
         self.width = width
         self.length = length
         self.objectId = objectId
         self.currentState = VehicleState(motionState)
         self.pathsWithInformation = pathsWithInformation
-        self.arcCoordinatesAlongPaths = []
+        self.arcCoordinatesAlongPaths = arcCoordinatesAlongPaths
         self.updateArcCoordinates()
         self.laneletMatchings = laneletMatchings
         self.color = np.random.rand(3)
+        self.pathOrientation = pathOrientation
+        self.updatepathOrientation()
+        self.updatepossiblepaths()
 
     def update(self, motionsState):
         self.currentState = VehicleState(motionsState)
         self.updateArcCoordinates()
+        self.updatepathOrientation()
+        self.updatepossiblepaths()
 
 
 class HomotopyClass:

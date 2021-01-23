@@ -1,5 +1,5 @@
 import os
-import processing_pipeline_edit
+import processing_pipeline
 import threading # only for plots
 
 if __name__=='__main__' and __package__ is None:
@@ -12,7 +12,7 @@ def main() :
     from argparser import parse_arguments
     args = parse_arguments(ROOT_PATH)
     print(ROOT_PATH)
-    processing_pipeline_edit.startProcessingPipeline(args)
+    processing_pipeline.startProcessingPipeline(args)
 
 
 if __name__=="__main__":
