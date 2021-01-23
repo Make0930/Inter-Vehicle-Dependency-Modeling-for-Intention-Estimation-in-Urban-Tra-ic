@@ -54,11 +54,6 @@ def main() :
 
     visualize = args['visualize']
 
-    plot_absolute_orientation = False
-    # when True, plot all possible paths' orientation and the car real orientation
-    # when False, plot the differences between all paths' orientation and the car orientation
-
-
     while True:
         random_trackid = random.randint(1, len(track_dictionary))
         if random_trackid in track_dictionary:
@@ -74,9 +69,16 @@ def main() :
         drawing_utils.draw_fancy_lanelet_map(laneletmap, axes)
         drawing_utils.draw_critical_areas(criticalAreas, axes)
         title_text = fig.suptitle("")
-        fig2, axes2 = plt.subplots(1, 1)
+        fig2, axes2 = plt.subplots(2,1)
         # axes2.set_title("Data Visualization for random track: ",random_trackid)
         fig2.canvas.set_window_title("Data Visualization for track %s " % (random_trackid))
+        plt.sca(axes2[0])
+        plt.title('Absolute orientaion for all paths')
+        plt.xlim(track_dictionary[random_trackid].time_stamp_ms_first,
+                 track_dictionary[random_trackid].time_stamp_ms_last)
+        plt.ylim(-3.2, 3.2)
+        plt.sca(axes2[1])
+        plt.title('Orientation difference for all paths')
         plt.xlim(track_dictionary[random_trackid].time_stamp_ms_first,
                  track_dictionary[random_trackid].time_stamp_ms_last)
         plt.ylim(-3.2, 3.2)
@@ -128,7 +130,6 @@ def main() :
             # fig.canvas.draw()
             title_text.set_text("\nts = {}".format(timestamp))
             if random_trackid in activeObjects.keys():
-                plt.sca(axes2)
                 basic_point = lanelet2.core.BasicPoint2d(
                     track_dictionary[random_trackid].motion_states[timestamp].x,
                     track_dictionary[random_trackid].motion_states[timestamp].y)
@@ -136,11 +137,19 @@ def main() :
                 for i in range(len(criticalAreas.critical_areas)):
                     area_center = lanelet2.core.BasicPoint2d(criticalAreas.critical_areas[i].x,criticalAreas.critical_areas[i].y)
                     if lanelet2.geometry.distance(basic_point,area_center) <= criticalAreas.critical_areas[i].radius:
+                        plt.sca(axes2[0])
+                        plt.scatter(timestamp, track_dictionary[random_trackid].motion_states[timestamp].psi_rad, c='k',
+                                    s=10,label= 'vehicle %s in critical area' % random_trackid)
+                        plt.sca(axes2[1])
                         plt.scatter(timestamp, track_dictionary[random_trackid].motion_states[timestamp].psi_rad, c='k',
                                     s=10,label= 'vehicle %s in critical area' % random_trackid)
                         in_area = 1
                         break
                 if in_area == 0:
+                    plt.sca(axes2[0])
+                    plt.scatter(timestamp, track_dictionary[random_trackid].motion_states[timestamp].psi_rad, c='r',
+                                s=1,label='vehicle %s orientation' % random_trackid)
+                    plt.sca(axes2[1])
                     plt.scatter(timestamp, track_dictionary[random_trackid].motion_states[timestamp].psi_rad, c='r',
                                 s=1,label='vehicle %s orientation' % random_trackid)
 
@@ -156,14 +165,11 @@ def main() :
                     else:
                         arc_difference = abs(activeObjects[random_trackid].pathOrientation[i][1]
                                              - track_dictionary[random_trackid].motion_states[timestamp].psi_rad)
-
-                    if plot_absolute_orientation:
-                        plt.title('Absolute orientaion for all paths')
-                        plt.scatter(timestamp, activeObjects[random_trackid].centerlineIndexAlongPaths[i][1] ,
+                    plt.sca(axes2[0])
+                    plt.scatter(timestamp, activeObjects[random_trackid].pathOrientation[i][1] ,
                                     c=colors[i], s=10, label='path orientation %s' % (i),marker=markers[i])
-                    else:
-                        plt.title('Orientation difference for all paths')
-                        plt.scatter(timestamp, arc_difference, c=colors[i],s=10, label='path orientation %s' % (i),marker=markers[i])
+                    plt.sca(axes2[1])
+                    plt.scatter(timestamp, arc_difference, c=colors[i],s=10, label='path orientation %s' % (i),marker=markers[i])
 
 
             end_time = time.time()
