@@ -63,7 +63,7 @@ class CriticalArea:
         mergedy = (self.y * self.numberOfMerges) / (self.numberOfMerges + 1) + (otherArea.y / (self.numberOfMerges + 1))
         dx = abs(mergedX - self.x)
         dy = abs(mergedy - self.y)
-        self.radius += math.sqrt((dx * dx) + (dy * dy))
+        self.radius += math.sqrt((dx * dx) + (dy * dy))         # the radius is larger than before
         self.radiusSqr = self.radius * self.radius
         for otherLanelet in otherArea.involvedLanelets:
             isInThis = False
@@ -74,7 +74,7 @@ class CriticalArea:
             if not isInThis:
                 self.involvedLanelets.append(otherLanelet)
         self.involvedLanelets.sort()
-        if self.description != otherArea.description:
+        if self.description != otherArea.description:     # the area is diverging and conflicting
             self.description = "unified"
 
 
@@ -248,7 +248,19 @@ class Vehicle:
         #         del self.arcCoordinatesAlongPaths[self.pathsWithInformation.index(path)]
         #         del self.centerlineIndexAlongPaths[self.pathsWithInformation.index(path)]
         #         del self.pathsWithInformation[self.pathsWithInformation.index(path)]
+    def updatepreviousVelocity(self):
+        self.previousVelocity = self.currentVelocity
+        if self.timestamp_first == self.currentState.motionState.time_stamp_ms:
+            self.previousVelocity = math.sqrt(self.currentState.motionState.vx ** 2 +
+                                             self.currentState.motionState.vy ** 2)
 
+    def updatecurrentVelocity(self):
+        self.currentVelocity = math.sqrt(self.currentState.motionState.vx ** 2 +
+                                    self.currentState.motionState.vy ** 2)
+
+    def updateacceleration(self):
+        #if self.timestamp_first != self.currentState.motionState.time_stamp_ms:
+        self.acceleration = (self.currentVelocity - self.previousVelocity) / 0.1
 
 
 
@@ -258,10 +270,11 @@ class Vehicle:
 
     def __init__(self, objectId=-1, motionState=MotionState(-1),
                  pathsWithInformation=[],
-                 laneletMatchings=[], arcCoordinatesAlongPaths = [],pathOrientation = [],width=2, length=4):
+                 laneletMatchings=[], arcCoordinatesAlongPaths = [],width=2, length=4,pathOrientation = [],previousVelocity = 0, currentVelocity = 0,acceleration = 0, timestamp_first =0):
         self.width = width
         self.length = length
         self.objectId = objectId
+        self.timestamp_first = timestamp_first
         self.currentState = VehicleState(motionState)
         self.pathsWithInformation = pathsWithInformation
         self.arcCoordinatesAlongPaths = arcCoordinatesAlongPaths
@@ -269,14 +282,23 @@ class Vehicle:
         self.laneletMatchings = laneletMatchings
         self.color = np.random.rand(3)
         self.pathOrientation = pathOrientation
+        self.previousVelocity = previousVelocity
+        self.currentVelocity = currentVelocity
+        self.acceleration = acceleration
         self.updatepathOrientation()
         self.updatepossiblepaths()
+        self.updatepreviousVelocity()
+        self.updatecurrentVelocity()
+        self.updateacceleration()
 
     def update(self, motionsState):
+        self.updatepreviousVelocity()
         self.currentState = VehicleState(motionsState)
         self.updateArcCoordinates()
         self.updatepathOrientation()
         self.updatepossiblepaths()
+        self.updatecurrentVelocity()
+        self.updateacceleration()
 
 
 class HomotopyClass:

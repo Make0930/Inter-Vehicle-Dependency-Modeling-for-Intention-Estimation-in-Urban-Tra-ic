@@ -110,7 +110,7 @@ def draw_critical_areas(criticalAreas, axes):
             circle = plt.Circle((ca.x, ca.y), ca.radius, facecolor='g', edgecolor="black", zorder=15)
         elif ca.description == "conflicting":
             circle = plt.Circle((ca.x, ca.y), ca.radius, facecolor='r', edgecolor="black", zorder=15)
-        else:
+        else:          #unified(both)
             circle = plt.Circle((ca.x, ca.y), ca.radius, facecolor='yellow', edgecolor="black", zorder=15)
         axes.add_artist(circle)
         # plt.gca().add_artist(circle)

@@ -66,7 +66,7 @@ def startProcessingPipeline(args):
 
         possiblePathParams = lanelet2.routing.PossiblePathsParams()
         possiblePathParams.includeShorterPaths = True
-        possiblePathParams.includeLaneChanges = False
+        possiblePathParams.includeLaneChanges = True
         for track in currentTracks:
             currentMs = track.motion_states[timestamp]
             if track.track_id not in activeObjects:
@@ -100,6 +100,8 @@ def startProcessingPipeline(args):
             title_text.set_text("\nts = {}".format(timestamp))
             end_time = time.time()
             plt.pause(max(0.001, timestamp_delta_ms / 1000. - (end_time - start_time)))
+        # for i in activeObjects[1].pathsWithInformation[0].laneletSequence:
+        #     print(i)
         timestamp += timestamp_delta_ms
     if visualize:
         plt.ioff()

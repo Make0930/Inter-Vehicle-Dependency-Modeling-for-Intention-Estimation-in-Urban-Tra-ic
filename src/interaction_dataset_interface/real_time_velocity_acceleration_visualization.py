@@ -17,9 +17,6 @@ from lanelet2.core import LaneletSequence
 from lanelet2_matching import python
 import random
 import math
-import networkx as nx
-from interval import Interval
-from dependency_calculation import dependency_calculate
 
 if __name__=='__main__' and __package__ is None:
     import sys
@@ -31,8 +28,6 @@ def main() :
     args = parse_arguments(ROOT_PATH)
     print(ROOT_PATH)
     print('loading map...')
-    map_name = (args['lanelet_map'].split('/')[-1]).split('.')[0]
-    trackfile = (args['interaction_trackfile'].split('/')[-1]).split('_')[-1]
     projector = lanelet2.projection.UtmProjector(lanelet2.io.Origin(args['lat_origin'], args['lon_origin']))
     laneletmap = lanelet2.io.load(args['lanelet_map'], projector)
     trafficRules = lanelet2.traffic_rules.create(lanelet2.traffic_rules.Locations.Germany,
@@ -56,34 +51,33 @@ def main() :
     patchesDict = dict()
     textDict = dict()
 
-    #parameter setting
-    visualize = args['visualize']
-    Deviation_alongarcCoordinate = 3.2
-    Time_difference_max = 3
-    Time_gap = 5
-    Distance_difference_max = 20
 
-    for i in laneletmap.regulatoryElementLayer:
-        if(i.attributes['subtype'] == 'speed_limit'):
-            speed_type = ''.join(list(filter(str.isalpha,i.attributes['sign_type'])))
-            speed_limit =int(''.join(list(filter(str.isdigit,i.attributes['sign_type']))))
+    visualize = args['visualize']
+
+
+    while True:
+        random_trackid = random.randint(1, len(track_dictionary))
+        if random_trackid in track_dictionary:
+            print('trackid %s is found' % (random_trackid))
             break
-    if speed_type:
-        if speed_type == 'kmh':
-            default_gap = speed_limit * 0.28 * Time_difference_max
-        else:   #mph
-            default_gap = speed_limit * 0.45 * Time_difference_max
-    default_gap = 40
+
+    random_trackid = 18
+    print(random_trackid)
 
     if visualize:
         fig, axes = plt.subplots(1, 1)
-        fig.canvas.set_window_title("Prediction Visualization in %s for %s" %(map_name,trackfile))
+        fig.canvas.set_window_title("Prediction Visualization")
         drawing_utils.draw_fancy_lanelet_map(laneletmap, axes)
         drawing_utils.draw_critical_areas(criticalAreas, axes)
         title_text = fig.suptitle("")
         fig2, axes2 = plt.subplots(1, 1)
-        fig2.canvas.set_window_title("Dependency Visualization in %s for %s" %(map_name,trackfile))
-        G = nx.DiGraph()
+        fig2.canvas.set_window_title("Data Visualization for track %s " % (random_trackid))
+        plt.xlim(track_dictionary[random_trackid].time_stamp_ms_first,
+                 track_dictionary[random_trackid].time_stamp_ms_last)
+        #plt.ylim(-3.2, 3.2)
+        plt.plot([track_dictionary[random_trackid].time_stamp_ms_first,track_dictionary[random_trackid].time_stamp_ms_last],[0,0],c = 'k')
+        colors = ['g', 'b', 'c', 'm', 'y', 'k', 'orange', 'aqua', 'lime']
+        markers = ['x', '+', 'v', '^', '1', '2', '3', '4', '5']
         plt.ion()
         plt.show()
 
@@ -96,16 +90,16 @@ def main() :
 
         possiblePathParams = lanelet2.routing.PossiblePathsParams()
         possiblePathParams.includeShorterPaths = True
-        possiblePathParams.includeLaneChanges = True
+        possiblePathParams.includeLaneChanges = False
         for track in currentTracks:
             currentMs = track.motion_states[timestamp]
             if track.track_id not in activeObjects:
                 vehicleState = predictiontypes.Vehicle(objectId=track.track_id, motionState=currentMs,
-                                                       width=track.width, length=track.length, timestamp_first= track.time_stamp_ms_first)
+                                                       width=track.width, length=track.length)
                 possiblePathsWithInfo = []
                 matchings = prediction_utilities.matchMotionState(laneletmap,currentMs)  # match the car to several possible lanelets
                 for match in matchings:  # for each start lanelet
-                    possiblePathParams.routingCostLimit = lanelet2.geometry.approximatedLength2d(match.lanelet) + 1500   # a very important value. it means how far(meters) to consider
+                    possiblePathParams.routingCostLimit = lanelet2.geometry.approximatedLength2d(match.lanelet) + 150
                     paths = map(lambda x: predictiontypes.PathWithInformation(laneletPath=x, caDict=laneletCaDict),
                                 # caDict means conflict
                                 graph.possiblePaths(match.lanelet, possiblePathParams))
@@ -119,24 +113,6 @@ def main() :
         prediction_utilities.removeInactiveObjects(activeObjects, timestamp)
 
         # TODO: continue here - calculate matching, build lanelet->critical area dictionary, associate track -> next ca, estimate state
-        #test
-        # lanelet_sequence1 = [[0] for i in range(len(activeObjects[5].pathsWithInformation))]
-        # lanelet_sequence2 = [[0] for i in range(len(activeObjects[6].pathsWithInformation))]
-        # lanelet_sequence3 = [[0] for i in range(len(activeObjects[14].pathsWithInformation))]
-        # lanelet_sequence4 = [[0] for i in range(len(activeObjects[18].pathsWithInformation))]
-        #
-        # for i in range(len(activeObjects[5].pathsWithInformation)):
-        #     for j in activeObjects[5].pathsWithInformation[i].laneletSequence:
-        #         lanelet_sequence1[i].append(j)
-        # for i in range(len(activeObjects[6].pathsWithInformation)):
-        #     for j in activeObjects[6].pathsWithInformation[i].laneletSequence:
-        #         lanelet_sequence2[i].append(j)
-        # for i in range(len(activeObjects[14].pathsWithInformation)):
-        #     for j in activeObjects[14].pathsWithInformation[i].laneletSequence:
-        #         lanelet_sequence3[i].append(j)
-        # for i in range(len(activeObjects[18].pathsWithInformation)):
-        #     for j in activeObjects[18].pathsWithInformation[i].laneletSequence:
-        #         lanelet_sequence4[i].append(j)
 
         if visualize:
             plt.sca(axes)
@@ -144,20 +120,37 @@ def main() :
             # drawing_utils.draw_motion_states(track_dictionary, timestamp, axes, patchesDict, textDict)
             drawing_utils.draw_vehicle_states(activeObjects, axes, patchesDict, textDict)
             prediction_utilities.cleanDrawingDicts(activeObjects, patchesDict, textDict)
+            # fig.canvas.draw()
             title_text.set_text("\nts = {}".format(timestamp))
+            if random_trackid in activeObjects.keys():
+                plt.sca(axes2)
+                plt.title('Velocity and acceleration of vehicle %s' % random_trackid)
+                basic_point = lanelet2.core.BasicPoint2d(
+                    track_dictionary[random_trackid].motion_states[timestamp].x,
+                    track_dictionary[random_trackid].motion_states[timestamp].y)
+                in_area = 0
+                for i in range(len(criticalAreas.critical_areas)):
+                    area_center = lanelet2.core.BasicPoint2d(criticalAreas.critical_areas[i].x,criticalAreas.critical_areas[i].y)
+                    if lanelet2.geometry.distance(basic_point,area_center) <= criticalAreas.critical_areas[i].radius:
+                        plt.scatter(timestamp, track_dictionary[random_trackid].motion_states[timestamp].psi_rad, c='k',
+                                    s=10,label= 'vehicle %s in critical area' % random_trackid)
+                        in_area = 1
+                        break
+                if in_area == 0:
+                    plt.scatter(timestamp, track_dictionary[random_trackid].motion_states[timestamp].psi_rad, c='r',
+                                s=1,label='vehicle %s orientation' % random_trackid)
 
-            dependency_node,dependency_edges = dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,
-                                                                    Deviation_alongarcCoordinate,Time_gap,Time_difference_max,Distance_difference_max)
-            plt.sca(axes2)
-            G.clear()
-            axes2.cla()
-            G.add_nodes_from(dependency_node)
-            G.add_edges_from(dependency_edges)
-            nx.draw_circular(G,with_labels = True)
+                plt.scatter(timestamp, activeObjects[random_trackid].currentVelocity, c='b',
+                                    s=10,label= 'Velocity of vehicle %s ' % random_trackid)
+
+
+                plt.scatter(timestamp, activeObjects[random_trackid].acceleration, c='g',
+                            s=1,label='Acceleration of vehicle %s ' % random_trackid)
 
             end_time = time.time()
+            if timestamp == track_dictionary[random_trackid].time_stamp_ms_first:
+                plt.legend()
             plt.pause(max(0.001, timestamp_delta_ms / 1000. - (end_time - start_time)))
-
         timestamp += timestamp_delta_ms
     if visualize:
         plt.ioff()

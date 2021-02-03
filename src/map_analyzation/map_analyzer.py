@@ -39,7 +39,7 @@ class BasicLaneletRelationAnalysis:
                         self.divergent_alternatives.append(foll.lanelet.id)
 
         if len(predecessors) > 1:
-            self.converged_from = predecessors
+            self.converged_from = predecessors    #the set of succesors
 
         following = []
         for foll in routing_graph.followingRelations(ll):
@@ -54,14 +54,14 @@ def getAllCriticalAreas(laneletmap, graph, mergeDistance):
     allCriticalAreas = predictiontypes.CriticalAreas()
     for lanelet in laneletmap.laneletLayer:
         analysis = BasicLaneletRelationAnalysis(lanelet.id)
-        analysis.analyze(laneletmap, graph)
+        analysis.analyze(laneletmap, graph)       #get the successors(converged_from) and followers(diverges_into)
         involvedLanelets = analysis.diverges_into
-        if len(involvedLanelets) > 1:
-            involvedLanelets.append(lanelet.id)
-            centerLine = lanelet2.geometry.to2D(lanelet.centerline)
+        if len(involvedLanelets) > 1:           #if a lanelet has more than one following lanelets, it will diverging
+            involvedLanelets.append(lanelet.id)     #add the discussed (center) lanelet
+            centerLine = lanelet2.geometry.to2D(lanelet.centerline)   #the discussed (center) lanelet centerline
             criticalArea = predictiontypes.CriticalArea(involvedLanelets=involvedLanelets, map=laneletmap,
                                                         center=centerLine[-1],
-                                                        description="diverging")
+                                                        description="diverging")   #center is the last point of the lanelet
             mergedIn = False
             for otherArea in allCriticalAreas:
                 if distanceSqr(otherArea, criticalArea) < mergeDistanceSqr:
@@ -70,10 +70,10 @@ def getAllCriticalAreas(laneletmap, graph, mergeDistance):
                     break
             if not mergedIn:
                 allCriticalAreas.add(criticalArea)
-        if len(analysis.conflicting) > 0:
+        if len(analysis.conflicting) > 0:       #if a lanelet has a conflicting lanelet
             for conflictingLaneletId in analysis.conflicting:
                 confLanelet = laneletmap.laneletLayer.get(conflictingLaneletId)
-                conflictCenter = lanelet2.geometry.intersectCenterlines2d(lanelet, confLanelet)
+                conflictCenter = lanelet2.geometry.intersectCenterlines2d(lanelet, confLanelet)  #the common line string of 2 lanelets
                 if len(conflictCenter) > 0:
                     conflictArea = predictiontypes.CriticalArea(involvedLanelets=[lanelet.id, conflictingLaneletId],
                                                                 center=conflictCenter[0], description="conflicting",
