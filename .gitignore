@@ -1,0 +1,7 @@
+*~
+setup.py
+*.pyc
+CMakeLists.txt.user
+__pycache__/*
+__pycache__/
+
