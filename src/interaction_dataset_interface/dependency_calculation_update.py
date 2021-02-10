@@ -37,21 +37,34 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                     gap = car_arcCoordinates.length - self_arcCoordinates.length
                     individual_gap = activeObjects[key].currentVelocity * Time_gap
                     gap_interval = Interval(0, max(default_gap,individual_gap), closed=False)
-                    #arc_difference to keep the two car in the same direction
-                    if (activeObjects[j].currentState.motionState.psi_rad * activeObjects[key].pathOrientation[k][1]) < 0 \
-                            and (abs(activeObjects[key].pathOrientation[k][1]) + abs(
-                        activeObjects[j].currentState.motionState.psi_rad)) > math.pi:
-                        if activeObjects[key].pathOrientation[k][1] > 0:
-                            arc_difference = 2 * math.pi - activeObjects[key].pathOrientation[k][1] + activeObjects[j].currentState.motionState.psi_rad
+                    if abs(car_arcCoordinates.distance) < Deviation_alongarcCoordinate and gap in gap_interval:
+                        #arc_difference to keep the two car in the same direction
+                        arcLength = car_arcCoordinates.length
+                        assert (arcLength >= 0)
+                        nextIndex = len(activeObjects[key].pathsWithInformation[k].lengthAccumulations) - 1
+                        for i in range(len(activeObjects[key].pathsWithInformation[k].lengthAccumulations)):
+                            if activeObjects[key].pathsWithInformation[k].lengthAccumulations[i] > arcLength:
+                                nextIndex = max(1, i)
+                                break
+                        pathOrientation_value = math.atan2(activeObjects[key].pathsWithInformation[k].centerline[nextIndex].y -
+                                                                activeObjects[key].pathsWithInformation[k].centerline[
+                                                                    nextIndex - 1].y,
+                                                                activeObjects[key].pathsWithInformation[k].centerline[nextIndex].x -
+                                                                activeObjects[key].pathsWithInformation[k].centerline[
+                                                                    nextIndex - 1].x)
+                        if (activeObjects[j].currentState.motionState.psi_rad * pathOrientation_value) < 0 \
+                                and (abs(pathOrientation_value) + abs(
+                            activeObjects[j].currentState.motionState.psi_rad)) > math.pi:
+                            if pathOrientation_value > 0:
+                                arc_difference = 2 * math.pi - pathOrientation_value + activeObjects[j].currentState.motionState.psi_rad
+                            else:
+                                arc_difference = 2 * math.pi + pathOrientation_value - activeObjects[j].currentState.motionState.psi_rad
                         else:
-                            arc_difference = 2 * math.pi + activeObjects[key].pathOrientation[k][1] - activeObjects[j].currentState.motionState.psi_rad
-                    else:
-                        arc_difference = abs(
-                            activeObjects[key].pathOrientation[k][1] - activeObjects[j].currentState.motionState.psi_rad)
-                    if abs(car_arcCoordinates.distance) < Deviation_alongarcCoordinate and gap in gap_interval and arc_difference < math.pi / 2:
-                        compare_distance[j] = gap
-                        if key not in calculated_pair or j not in calculated_pair[key]:
-                            calculated_pair.setdefault(key, []).append(j)  # key is center car id,  value is the other cars list, which in the possible path of center car
+                            arc_difference = abs(pathOrientation_value - activeObjects[j].currentState.motionState.psi_rad)
+                        if arc_difference < math.pi / 2:
+                            compare_distance[j] = gap
+                            if key not in calculated_pair or j not in calculated_pair[key]:
+                                calculated_pair.setdefault(key, []).append(j)  # key is center car id,  value is the other cars list, which in the possible path of center car
                 if compare_distance:  # if the dict not empty
                     car_index = min(compare_distance, key=compare_distance.get)
                     if (key, car_index) not in dependency_edges:

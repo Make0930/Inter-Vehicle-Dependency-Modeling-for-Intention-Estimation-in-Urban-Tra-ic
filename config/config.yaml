@@ -7,13 +7,13 @@ debug: true
 visualize: true
 
 # map parameters
-#lanelet_map: /home/mark/Master_Thesis/interaction_dataset/maps/DR_DEU_Roundabout_OF.osm
+lanelet_map: /home/mark/Master_Thesis/interaction_dataset/maps/DR_DEU_Roundabout_OF.osm
 #lanelet_map: /home/mark/Master_Thesis/interaction_dataset/maps/DR_DEU_Merging_MT.osm
 #lanelet_map: /home/mark/Master_Thesis/interaction_dataset/maps/DR_CHN_Roundabout_LN.osm
 #lanelet_map: /home/mark/Master_Thesis/interaction_dataset/maps/DR_USA_Roundabout_SR.osm
 #lanelet_map: /home/mark/Master_Thesis/interaction_dataset/maps/DR_CHN_Merging_ZS.osm
 #lanelet_map: /home/mark/Master_Thesis/interaction_dataset/maps/DR_USA_Roundabout_FT.osm
-lanelet_map: /home/mark/Master_Thesis/interaction_dataset/maps/DR_USA_Roundabout_EP.osm
+#lanelet_map: /home/mark/Master_Thesis/interaction_dataset/maps/DR_USA_Roundabout_EP.osm
 #lanelet_map: /home/mark/Master_Thesis/interaction_dataset/maps/DR_USA_Intersection_EP0.osm
 #lanelet_map:
 #lanelet_map:
@@ -26,13 +26,13 @@ lon_origin: 0.
 critical_area_sim_thresh: 3
 
 # dataset parameters
-#interaction_trackfile: /home/mark/Master_Thesis/interaction_dataset/recorded_trackfiles/DR_DEU_Roundabout_OF/vehicle_tracks_003.csv
+interaction_trackfile: /home/mark/Master_Thesis/interaction_dataset/recorded_trackfiles/DR_DEU_Roundabout_OF/vehicle_tracks_003.csv
 #interaction_trackfile: /home/mark/Master_Thesis/interaction_dataset/recorded_trackfiles/DR_DEU_Merging_MT/vehicle_tracks_003.csv
 #interaction_trackfile: /home/mark/Master_Thesis/interaction_dataset/recorded_trackfiles/DR_CHN_Roundabout_LN/vehicle_tracks_003.csv
 #interaction_trackfile: /home/mark/Master_Thesis/interaction_dataset/recorded_trackfiles/DR_USA_Roundabout_SR/vehicle_tracks_003.csv
 #interaction_trackfile: /home/mark/Master_Thesis/interaction_dataset/recorded_trackfiles/DR_CHN_Merging_ZS/vehicle_tracks_000.csv
 #interaction_trackfile: /home/mark/Master_Thesis/interaction_dataset/recorded_trackfiles/DR_USA_Roundabout_FT/vehicle_tracks_003.csv
-interaction_trackfile: /home/mark/Master_Thesis/interaction_dataset/recorded_trackfiles/DR_USA_Roundabout_EP/vehicle_tracks_003.csv
+#interaction_trackfile: /home/mark/Master_Thesis/interaction_dataset/recorded_trackfiles/DR_USA_Roundabout_EP/vehicle_tracks_003.csv
 #interaction_trackfile: /home/mark/Master_Thesis/interaction_dataset/recorded_trackfiles/DR_USA_Intersection_EP0/vehicle_tracks_002.csv
 #interaction_trackfile:
 #interaction_trackfile:
