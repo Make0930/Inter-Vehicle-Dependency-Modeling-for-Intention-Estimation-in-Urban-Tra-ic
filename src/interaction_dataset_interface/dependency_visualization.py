@@ -19,7 +19,8 @@ import random
 import math
 import networkx as nx
 from interval import Interval
-from dependency_calculation import dependency_calculate
+from possiblepath_calculation import possiblepath_calculate
+from dependency_calculation_update import dependency_calculate
 
 if __name__=='__main__' and __package__ is None:
     import sys
@@ -46,6 +47,7 @@ def main() :
     print('loading trackfiles')
     track_dictionary = dataset_reader.read_tracks(args['interaction_trackfile'])
 
+
     timestamp_min = 1e9
     timestamp_max = 0
     timestamp_delta_ms = 100
@@ -58,22 +60,13 @@ def main() :
 
     #parameter setting
     visualize = args['visualize']
-    Deviation_alongarcCoordinate = 3.2
+    Deviation_alongarcCoordinate = 4
     Time_difference_max = 3
     Time_gap = 5
+    Default_gap = 40
     Distance_difference_max = 20
-
-    for i in laneletmap.regulatoryElementLayer:
-        if(i.attributes['subtype'] == 'speed_limit'):
-            speed_type = ''.join(list(filter(str.isalpha,i.attributes['sign_type'])))
-            speed_limit =int(''.join(list(filter(str.isdigit,i.attributes['sign_type']))))
-            break
-    if speed_type:
-        if speed_type == 'kmh':
-            default_gap = speed_limit * 0.28 * Time_difference_max
-        else:   #mph
-            default_gap = speed_limit * 0.45 * Time_difference_max
-    default_gap = 40
+    PathLengthLimit = 500
+    PathLengthDifference = 150
 
     if visualize:
         fig, axes = plt.subplots(1, 1)
@@ -87,6 +80,7 @@ def main() :
         plt.ion()
         plt.show()
 
+
     activeObjects = dict()
     while timestamp < timestamp_max:
         if visualize:
@@ -94,10 +88,12 @@ def main() :
 
         currentTracks = interaction_dataset_utilities.getVisibleTracks(timestamp, track_dictionary)
 
-        possiblePathParams = lanelet2.routing.PossiblePathsParams()
-        possiblePathParams.includeShorterPaths = True
-        possiblePathParams.includeLaneChanges = True
+        # possiblePathParams = lanelet2.routing.PossiblePathsParams()
+        # possiblePathParams.includeShorterPaths = True
+        # possiblePathParams.includeLaneChanges = False
         for track in currentTracks:
+            if track.track_id == 12:
+                print()
             currentMs = track.motion_states[timestamp]
             if track.track_id not in activeObjects:
                 vehicleState = predictiontypes.Vehicle(objectId=track.track_id, motionState=currentMs,
@@ -105,11 +101,14 @@ def main() :
                 possiblePathsWithInfo = []
                 matchings = prediction_utilities.matchMotionState(laneletmap,currentMs)  # match the car to several possible lanelets
                 for match in matchings:  # for each start lanelet
-                    possiblePathParams.routingCostLimit = lanelet2.geometry.approximatedLength2d(match.lanelet) + 1500   # a very important value. it means how far(meters) to consider
-                    paths = map(lambda x: predictiontypes.PathWithInformation(laneletPath=x, caDict=laneletCaDict),
-                                # caDict means conflict
-                                graph.possiblePaths(match.lanelet, possiblePathParams))
-                    possiblePathsWithInfo.extend(paths)
+                    #possiblePathParams.routingCostLimit = lanelet2.geometry.approximatedLength2d(match.lanelet) + 300   # a very important value. it means how far(meters) to consider
+                    # paths = map(lambda x: predictiontypes.PathWithInformation(laneletPath=x, caDict=laneletCaDict),
+                    #             # caDict means conflict
+                    #             graph.possiblePaths(match.lanelet, possiblePathParams))
+                    #possiblePathsWithInfo.extend(paths)
+                    Pathset = possiblepath_calculate(matching=match,map_graph= graph,pathLengthLimit = PathLengthLimit, pathLengthDifference = PathLengthDifference)
+                    paths2 = map(lambda x: predictiontypes.PathWithInformation(laneletPath=x, caDict=laneletCaDict),Pathset) # caDict means conflict
+                    possiblePathsWithInfo.extend(paths2)
                 vehicleState.pathsWithInformation = possiblePathsWithInfo
                 activeObjects[track.track_id] = vehicleState
             else:
@@ -119,24 +118,7 @@ def main() :
         prediction_utilities.removeInactiveObjects(activeObjects, timestamp)
 
         # TODO: continue here - calculate matching, build lanelet->critical area dictionary, associate track -> next ca, estimate state
-        #test
-        # lanelet_sequence1 = [[0] for i in range(len(activeObjects[5].pathsWithInformation))]
-        # lanelet_sequence2 = [[0] for i in range(len(activeObjects[6].pathsWithInformation))]
-        # lanelet_sequence3 = [[0] for i in range(len(activeObjects[14].pathsWithInformation))]
-        # lanelet_sequence4 = [[0] for i in range(len(activeObjects[18].pathsWithInformation))]
-        #
-        # for i in range(len(activeObjects[5].pathsWithInformation)):
-        #     for j in activeObjects[5].pathsWithInformation[i].laneletSequence:
-        #         lanelet_sequence1[i].append(j)
-        # for i in range(len(activeObjects[6].pathsWithInformation)):
-        #     for j in activeObjects[6].pathsWithInformation[i].laneletSequence:
-        #         lanelet_sequence2[i].append(j)
-        # for i in range(len(activeObjects[14].pathsWithInformation)):
-        #     for j in activeObjects[14].pathsWithInformation[i].laneletSequence:
-        #         lanelet_sequence3[i].append(j)
-        # for i in range(len(activeObjects[18].pathsWithInformation)):
-        #     for j in activeObjects[18].pathsWithInformation[i].laneletSequence:
-        #         lanelet_sequence4[i].append(j)
+
 
         if visualize:
             plt.sca(axes)
@@ -146,7 +128,7 @@ def main() :
             prediction_utilities.cleanDrawingDicts(activeObjects, patchesDict, textDict)
             title_text.set_text("\nts = {}".format(timestamp))
 
-            dependency_node,dependency_edges = dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,
+            dependency_node,dependency_edges,rightofway_info = dependency_calculate(activeObjects,track_dictionary,timestamp,Default_gap,
                                                                     Deviation_alongarcCoordinate,Time_gap,Time_difference_max,Distance_difference_max)
             plt.sca(axes2)
             G.clear()
@@ -157,7 +139,8 @@ def main() :
 
             end_time = time.time()
             plt.pause(max(0.001, timestamp_delta_ms / 1000. - (end_time - start_time)))
-
+        if timestamp == 2800:
+            print()
         timestamp += timestamp_delta_ms
     if visualize:
         plt.ioff()

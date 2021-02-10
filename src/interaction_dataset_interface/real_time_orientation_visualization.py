@@ -60,7 +60,7 @@ def main() :
             print('trackid %s is found' % (random_trackid))
             break
 
-    #random_trackid = 7
+    random_trackid = 1
     print(random_trackid)
 
     if visualize:
@@ -97,7 +97,7 @@ def main() :
 
         possiblePathParams = lanelet2.routing.PossiblePathsParams()
         possiblePathParams.includeShorterPaths = True
-        possiblePathParams.includeLaneChanges = False
+        possiblePathParams.includeLaneChanges = True
         for track in currentTracks:
             currentMs = track.motion_states[timestamp]
             if track.track_id not in activeObjects:
@@ -106,7 +106,7 @@ def main() :
                 possiblePathsWithInfo = []
                 matchings = prediction_utilities.matchMotionState(laneletmap,currentMs)  # match the car to several possible lanelets
                 for match in matchings:  # for each start lanelet
-                    possiblePathParams.routingCostLimit = lanelet2.geometry.approximatedLength2d(match.lanelet) + 150
+                    possiblePathParams.routingCostLimit = lanelet2.geometry.approximatedLength2d(match.lanelet) + 200
                     paths = map(lambda x: predictiontypes.PathWithInformation(laneletPath=x, caDict=laneletCaDict),
                                 # caDict means conflict
                                 graph.possiblePaths(match.lanelet, possiblePathParams))
@@ -153,18 +153,19 @@ def main() :
                     plt.scatter(timestamp, track_dictionary[random_trackid].motion_states[timestamp].psi_rad, c='r',
                                 s=1,label='vehicle %s orientation' % random_trackid)
 
+                print(track_dictionary[random_trackid].motion_states[timestamp].psi_rad)
                 for i in range(len(activeObjects[random_trackid].pathsWithInformation)):  # for each path
-                    if (track_dictionary[random_trackid].motion_states[timestamp].psi_rad * activeObjects[random_trackid].pathOrientation[i][1] ) < 0 \
-                            and (abs(activeObjects[random_trackid].pathOrientation[i][1]) + abs(track_dictionary[random_trackid].motion_states[timestamp].psi_rad)) > math.pi:
+                    if (activeObjects[random_trackid].currentState.motionState.psi_rad * activeObjects[random_trackid].pathOrientation[i][1] ) < 0 \
+                            and (abs(activeObjects[random_trackid].pathOrientation[i][1]) + abs(activeObjects[random_trackid].currentState.motionState.psi_rad)) > math.pi:
                         if activeObjects[random_trackid].pathOrientation[i][1] > 0:
                             arc_difference = 2* math.pi -  activeObjects[random_trackid].pathOrientation[i][1] \
-                                             + track_dictionary[random_trackid].motion_states[timestamp].psi_rad
+                                             + activeObjects[random_trackid].currentState.motionState.psi_rad
                         else:
                             arc_difference = 2* math.pi +  activeObjects[random_trackid].pathOrientation[i][1] \
-                                             - track_dictionary[random_trackid].motion_states[timestamp].psi_rad
+                                             - activeObjects[random_trackid].currentState.motionState.psi_rad
                     else:
                         arc_difference = abs(activeObjects[random_trackid].pathOrientation[i][1]
-                                             - track_dictionary[random_trackid].motion_states[timestamp].psi_rad)
+                                             - activeObjects[random_trackid].currentState.motionState.psi_rad)
                     plt.sca(axes2[0])
                     plt.scatter(timestamp, activeObjects[random_trackid].pathOrientation[i][1] ,
                                     c=colors[i], s=10, label='path orientation %s' % (i),marker=markers[i])

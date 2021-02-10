@@ -231,14 +231,30 @@ class Vehicle:
 
 
     def updatepossiblepaths(self):
-         for arcCoordinate in self.arcCoordinatesAlongPaths:  #check each path
-             if abs(arcCoordinate.distance) > 3.3:
-                 del self.pathOrientation[self.arcCoordinatesAlongPaths.index(arcCoordinate)]
-                 del self.pathsWithInformation[self.arcCoordinatesAlongPaths.index(arcCoordinate)]
-                 del self.arcCoordinatesAlongPaths[self.arcCoordinatesAlongPaths.index(arcCoordinate)]
+         delete_index = []
+         for arcCoordinate_idx in range(len(self.arcCoordinatesAlongPaths)):  #check each path
+             if abs(self.arcCoordinatesAlongPaths[arcCoordinate_idx].distance) > 4:
+                 delete_index.append(arcCoordinate_idx)
+         for orientation_idx in range(len(self.pathOrientation)):
+             if (self.currentState.motionState.psi_rad *self.pathOrientation[orientation_idx][1]) < 0 \
+                     and (abs(self.pathOrientation[orientation_idx][1]) + abs(self.currentState.motionState.psi_rad)) > math.pi:
+                 if self.pathOrientation[orientation_idx][1] > 0:
+                     arc_difference = 2 * math.pi - self.pathOrientation[orientation_idx][1] + self.currentState.motionState.psi_rad
+                 else:
+                     arc_difference = 2 * math.pi + self.pathOrientation[orientation_idx][1] - self.currentState.motionState.psi_rad
+             else:
+                 arc_difference = abs(self.pathOrientation[orientation_idx][1] - self.currentState.motionState.psi_rad)
+             if arc_difference > math.pi / 2 and orientation_idx not in delete_index:
+                 delete_index.append(orientation_idx)
+         if delete_index:
+             for i in delete_index:
+                 del self.arcCoordinatesAlongPaths[i-delete_index.index(i)]
+                 del self.pathsWithInformation[i-delete_index.index(i)]
+                 del self.pathOrientation[i-delete_index.index(i)]
 
 
-        # for path in self.pathsWithInformation:  #check each path
+
+    # for path in self.pathsWithInformation:  #check each path
         #     i = 0
         #     for ll_index in range(len(self.laneletMatchings)):    #for each current lanelet id
         #         if (self.laneletMatchings[ll_index].lanelet in path.laneletSequence):

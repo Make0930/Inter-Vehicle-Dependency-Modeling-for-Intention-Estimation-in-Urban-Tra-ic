@@ -75,7 +75,7 @@ def startProcessingPipeline(args):
                 matchings = prediction_utilities.matchMotionState(laneletmap, currentMs)  # match the car to several possible lanelets
                 possiblePathsWithInfo = []
                 for match in matchings:      #for each start lanelet
-                    possiblePathParams.routingCostLimit = lanelet2.geometry.approximatedLength2d(match.lanelet) + 150
+                    possiblePathParams.routingCostLimit = lanelet2.geometry.approximatedLength2d(match.lanelet) + 300
                     paths = map(lambda x: predictiontypes.PathWithInformation(laneletPath=x, caDict=laneletCaDict),   #caDict means conflict
                                 graph.possiblePaths(match.lanelet, possiblePathParams))
                     possiblePathsWithInfo.extend(paths)
