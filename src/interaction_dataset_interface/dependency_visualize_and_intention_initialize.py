@@ -1,6 +1,6 @@
 import os
 import processing_pipeline
-import threading # only for plots
+# import threading # only for plots
 import map_analyzer
 import lanelet2
 import lanelet2.core
@@ -13,14 +13,11 @@ import matplotlib.pyplot as plt
 import time
 import prediction_utilities
 import predictiontypes
-from lanelet2.core import LaneletSequence
-from lanelet2_matching import python
-import random
-import math
 import networkx as nx
-from interval import Interval
 from possiblepath_calculation import possiblepath_calculate
-from dependency_calculation_update import dependency_calculate
+from dependency_modeling import dependency_calculate
+from hidden_intention_initialization import hidden_intentions_initialize
+
 
 if __name__=='__main__' and __package__ is None:
     import sys
@@ -66,7 +63,6 @@ def main() :
     Default_gap = 40
     Distance_difference_max = 20
     PathLengthLimit = 500
-    PathLengthDifference = 150
 
     if visualize:
         fig, axes = plt.subplots(1, 1)
@@ -92,8 +88,6 @@ def main() :
         # possiblePathParams.includeShorterPaths = True
         # possiblePathParams.includeLaneChanges = False
         for track in currentTracks:
-            if track.track_id == 12:
-                print()
             currentMs = track.motion_states[timestamp]
             if track.track_id not in activeObjects:
                 vehicleState = predictiontypes.Vehicle(objectId=track.track_id, motionState=currentMs,
@@ -106,7 +100,7 @@ def main() :
                     #             # caDict means conflict
                     #             graph.possiblePaths(match.lanelet, possiblePathParams))
                     #possiblePathsWithInfo.extend(paths)
-                    Pathset = possiblepath_calculate(matching=match,map_graph= graph,pathLengthLimit = PathLengthLimit, pathLengthDifference = PathLengthDifference)
+                    Pathset = possiblepath_calculate(matching=match,map_graph= graph,pathLengthLimit = PathLengthLimit)
                     paths2 = map(lambda x: predictiontypes.PathWithInformation(laneletPath=x, caDict=laneletCaDict),Pathset) # caDict means conflict
                     possiblePathsWithInfo.extend(paths2)
                 vehicleState.pathsWithInformation = possiblePathsWithInfo
@@ -116,20 +110,18 @@ def main() :
             vehicleState.update(currentMs)
 
         prediction_utilities.removeInactiveObjects(activeObjects, timestamp)
-
         # TODO: continue here - calculate matching, build lanelet->critical area dictionary, associate track -> next ca, estimate state
 
 
         if visualize:
             plt.sca(axes)
-            # plt.axis('off')
-            # drawing_utils.draw_motion_states(track_dictionary, timestamp, axes, patchesDict, textDict)
             drawing_utils.draw_vehicle_states(activeObjects, axes, patchesDict, textDict)
             prediction_utilities.cleanDrawingDicts(activeObjects, patchesDict, textDict)
             title_text.set_text("\nts = {}".format(timestamp))
 
-            dependency_node,dependency_edges,rightofway_info = dependency_calculate(activeObjects,track_dictionary,timestamp,Default_gap,
+            dependency_node,dependency_edges,rightofway_info,front_car_pairs,conflicting_car_pairs = dependency_calculate(activeObjects,track_dictionary,timestamp,Default_gap,
                                                                     Deviation_alongarcCoordinate,Time_gap,Time_difference_max,Distance_difference_max)
+            hidden_intention = hidden_intentions_initialize(activeObjects,front_car_pairs,conflicting_car_pairs,Deviation_alongarcCoordinate,Distance_difference_max)
             plt.sca(axes2)
             G.clear()
             axes2.cla()
@@ -139,8 +131,6 @@ def main() :
 
             end_time = time.time()
             plt.pause(max(0.001, timestamp_delta_ms / 1000. - (end_time - start_time)))
-        if timestamp == 2800:
-            print()
         timestamp += timestamp_delta_ms
     if visualize:
         plt.ioff()

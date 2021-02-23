@@ -159,6 +159,13 @@ class PathWithInformation:
         for ll in laneletPath:  # for each lanelet in the path
             if ll.id in caDict:      #if the lanelet is in conflicting area
                 for ca in caDict[ll.id]:    #caDict is a dictionary for all conflict areas in the map, key is lanelet id,
+                    repetition = 0
+                    for area in self.criticalAreasWithCoordinates:
+                        if area[0] == ca:
+                            repetition = 1
+                            break
+                    if repetition:
+                        continue
                     basicCaCenter = lanelet2.core.BasicPoint2d(ca.x, ca.y)    # center of conflict area
                     coordinate = lanelet2.geometry.toArcCoordinates(self.centerline, basicCaCenter)
                     self.criticalAreasWithCoordinates.append((ca, coordinate))     # (two elements, first is critialarea name, second is the arccoordinate of the area along the path
@@ -235,6 +242,12 @@ class Vehicle:
          for arcCoordinate_idx in range(len(self.arcCoordinatesAlongPaths)):  #check each path
              if abs(self.arcCoordinatesAlongPaths[arcCoordinate_idx].distance) > 4:
                  delete_index.append(arcCoordinate_idx)
+         if delete_index:
+             for i in delete_index:
+                 del self.arcCoordinatesAlongPaths[i-delete_index.index(i)]
+                 del self.pathsWithInformation[i-delete_index.index(i)]
+                 del self.pathOrientation[i-delete_index.index(i)]
+         delete_index = []
          for orientation_idx in range(len(self.pathOrientation)):
              if (self.currentState.motionState.psi_rad *self.pathOrientation[orientation_idx][1]) < 0 \
                      and (abs(self.pathOrientation[orientation_idx][1]) + abs(self.currentState.motionState.psi_rad)) > math.pi:

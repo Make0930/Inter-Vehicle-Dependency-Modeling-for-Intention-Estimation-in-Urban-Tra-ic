@@ -66,7 +66,7 @@ def startProcessingPipeline(args):
 
         possiblePathParams = lanelet2.routing.PossiblePathsParams()
         possiblePathParams.includeShorterPaths = True
-        possiblePathParams.includeLaneChanges = True
+        possiblePathParams.includeLaneChanges = False
         for track in currentTracks:
             currentMs = track.motion_states[timestamp]
             if track.track_id not in activeObjects:

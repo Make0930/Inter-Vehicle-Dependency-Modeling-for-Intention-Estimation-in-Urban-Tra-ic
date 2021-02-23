@@ -2,12 +2,7 @@ import lanelet2
 import lanelet2.core
 import lanelet2.geometry
 import lanelet2.routing
-import prediction_utilities
-import predictiontypes
-from lanelet2.core import LaneletSequence
-from lanelet2_matching import python
 import math
-import networkx as nx
 from interval import Interval
 
 def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,Deviation_alongarcCoordinate,Time_gap,Time_difference_max,Distance_difference_max):
@@ -22,8 +17,11 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
 
         # first level: Calculate vehicle dependencies with clear priorities(in a sequence) and save them in a calculated_pair
         calculated_pair = {}
+        front_car_pair = {}
         for key in activeObjects.keys():  # for each center car
+            front_car_pair[key] = {}
             for k in range(len(activeObjects[key].pathsWithInformation)):  # for each path
+                front_car_pair[key].setdefault(k,[])
                 compare_distance = {}
                 self_arcCoordinates = activeObjects[key].arcCoordinatesAlongPaths[k]
                 for j in activeObjects.keys():  # for each other car in this path
@@ -67,13 +65,18 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                 calculated_pair.setdefault(key, []).append(j)  # key is center car id,  value is the other cars list, which in the possible path of center car
                 if compare_distance:  # if the dict not empty
                     car_index = min(compare_distance, key=compare_distance.get)
+                    front_car_pair[key][k].append(car_index)
                     if (key, car_index) not in dependency_edges:
                         dependency_edges.append((key, car_index))  # key depends on j, key points to j
 
         # second level: Calculate the dependencies between vehicles that may conflict in the future
         paired = {}
+        conflicting_car_pair = {}
+        for key in activeObjects.keys():  # for each car A id = key
+            conflicting_car_pair[key] = {}
         for key in activeObjects.keys():  # for each car A id = key
             for Pa in range(len(activeObjects[key].pathsWithInformation)):  # for each possible path of car A  pathsWithInformation[Pa]
+                conflicting_car_pair[key].setdefault(Pa,[])
                 car_list = []
                 for j in activeObjects.keys():  # for each car B id = j
                     #skip calculated cars
@@ -81,13 +84,11 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                             j in calculated_pair and key in calculated_pair[j]) \
                             or (key in calculated_pair and j in calculated_pair[key]):
                         continue
-                    # if key ==2 and j == 7:
-                    #     print()
-                    dependency_key_j = 0
                     car_list.append(j)
                     for Pb in range(len(activeObjects[j].pathsWithInformation)):  # for each path of car B
+                        conflicting_car_pair[j].setdefault(Pb,[])
                         # check whether the cars have critical Areas
-                        if dependency_key_j == 0 and activeObjects[key].pathsWithInformation[
+                        if activeObjects[key].pathsWithInformation[
                             Pa].criticalAreasWithCoordinates and activeObjects[j].pathsWithInformation[
                             Pb].criticalAreasWithCoordinates \
                                 and activeObjects[key].pathsWithInformation[Pa].criticalAreasWithCoordinates[0][
@@ -205,8 +206,8 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                             #if first common area exists for car a and car b
                             if first_common_area:
             #2.1  Determine dependencies based on right of way and distance
-                                #if the dependency not build yet
-                                if (key,j) not in dependency_edges or (j,key) not in dependency_edges:
+                                #if the path dependency not build yet
+                                if j not in conflicting_car_pair[key][Pa] or key not in conflicting_car_pair[j][Pb]:
                                     individual_gap_a = activeObjects[key].currentVelocity * Time_gap
                                     individual_gap_b = activeObjects[j].currentVelocity * Time_gap
                                     # if the distance difference of two car to the critical area is in a threshold
@@ -223,7 +224,7 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                             if ll_a.rightOfWay():
                                                 ll_a_point = lanelet2.core.BasicPoint2d(ll_a.centerline[-1].x,ll_a.centerline[-1].y)
                                                 ll_a_arcCoordinate = lanelet2.geometry.toArcCoordinates(activeObjects[key].pathsWithInformation[Pa].centerline,ll_a_point)
-                                                if ll_a_arcCoordinate.distance < Deviation_alongarcCoordinate and ll_a_arcCoordinate.length >= activeObjects[key].arcCoordinatesAlongPaths[Pa].length:
+                                                if abs(ll_a_arcCoordinate.distance) < Deviation_alongarcCoordinate and ll_a_arcCoordinate.length >= activeObjects[key].arcCoordinatesAlongPaths[Pa].length:
                                                     ll_A = ll_a
                                                     ll_A_point = lanelet2.core.BasicPoint2d(ll_A.centerline[-1].x,ll_A.centerline[-1].y)
                                                     distance_A_to_area = lanelet2.geometry.distance(common_area_center,ll_A_point)
@@ -233,7 +234,7 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                             if ll_b.rightOfWay():
                                                 ll_b_point = lanelet2.core.BasicPoint2d(ll_b.centerline[-1].x,ll_b.centerline[-1].y)
                                                 ll_b_arcCoordinate = lanelet2.geometry.toArcCoordinates(activeObjects[j].pathsWithInformation[Pb].centerline, ll_b_point)
-                                                if ll_b_arcCoordinate.distance < Deviation_alongarcCoordinate and ll_b_arcCoordinate.length >= activeObjects[j].arcCoordinatesAlongPaths[Pb].length:
+                                                if abs(ll_b_arcCoordinate.distance) < Deviation_alongarcCoordinate and ll_b_arcCoordinate.length >= activeObjects[j].arcCoordinatesAlongPaths[Pb].length:
                                                     ll_B = ll_b
                                                     ll_B_point = lanelet2.core.BasicPoint2d(ll_B.centerline[-1].x,ll_B.centerline[-1].y)
                                                     distance_B_to_area = lanelet2.geometry.distance(common_area_center,ll_B_point)
@@ -260,26 +261,34 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                 ll_rightOfWay_arcCoordinate_start = lanelet2.geometry.toArcCoordinates(activeObjects[j].pathsWithInformation[Pb].centerline,ll_rightOfWay_start)
                                                 # if car A don't have front car
                                                 if key not in calculated_pair:
-                                                    if (key, j) not in dependency_edges and (distance_b - distance_a) <= Distance_difference_max:
-                                                        dependency_edges.append((key, j))
-                                                        rightofway_info.setdefault(key,[]).append(j)
+                                                    if (distance_b - distance_a) <= Distance_difference_max:
+                                                        if j not in conflicting_car_pair[key][Pa]:
+                                                            conflicting_car_pair[key][Pa].append(j)
+                                                        if (key, j) not in dependency_edges:
+                                                            dependency_edges.append((key, j))
+                                                            rightofway_info.setdefault(key,[]).append(j)
                                                     if distance_a < distance_b:
                                                     # if car B don't have front car and car B not pass the conflicting lanelet
-                                                        if j not in calculated_pair and (j,key) not in dependency_edges:
-                                                            if ll_rightOfWay_arcCoordinate_start.length > activeObjects[j].arcCoordinatesAlongPaths[Pb].length:
+                                                        if j not in calculated_pair and ll_rightOfWay_arcCoordinate_start.length >activeObjects[j].arcCoordinatesAlongPaths[Pb].length:
+                                                            if key not in conflicting_car_pair[j][Pb]:
+                                                                conflicting_car_pair[j][Pb].append(key)
+                                                            if (j,key) not in dependency_edges:
                                                                 dependency_edges.append((j,key))
                                                     # if car B have front car ,but the front car don't in the path to conflicting lanelet
-                                                        if j in calculated_pair  and (j,key) not in dependency_edges:
+                                                        if j in calculated_pair :
                                                             front_car_j = 0
                                                             for k in calculated_pair[j]:
                                                                 front_car_j_point = lanelet2.core.BasicPoint2d(track_dictionary[k].motion_states[timestamp].x,
                                                                                                        track_dictionary[k].motion_states[timestamp].y)
                                                                 front_car_j_arcCoordinate = lanelet2.geometry.toArcCoordinates(activeObjects[j].pathsWithInformation[Pb].centerline,front_car_j_point)
-                                                                if front_car_j_arcCoordinate.distance< Deviation_alongarcCoordinate and front_car_j_arcCoordinate.length < ll_rightOfWay_arcCoordinate_start.length:
+                                                                if abs(front_car_j_arcCoordinate.distance) < Deviation_alongarcCoordinate and front_car_j_arcCoordinate.length < ll_rightOfWay_arcCoordinate_start.length:
                                                                     front_car_j = 1
-                                                            if front_car_j == 0:
-                                                                if ll_rightOfWay_arcCoordinate_start.length > \
+                                                                    break
+                                                            if front_car_j == 0 and ll_rightOfWay_arcCoordinate_start.length > \
                                                                         activeObjects[j].arcCoordinatesAlongPaths[Pb].length:
+                                                                if key not in conflicting_car_pair[j][Pb]:
+                                                                    conflicting_car_pair[j][Pb].append(key)
+                                                                if (j, key) not in dependency_edges:
                                                                     dependency_edges.append((j, key))
 
                                                 # if car A's front car has passed merge lanelet
@@ -298,21 +307,27 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                         front_car_arcCoordinate = lanelet2.geometry.toArcCoordinates(
                                                             activeObjects[key].pathsWithInformation[Pa].centerline,
                                                             car_point)
-                                                        if front_car_arcCoordinate.distance < Deviation_alongarcCoordinate and front_car_arcCoordinate.length < ll_merge_arcCoordinate.length:
+                                                        if abs(front_car_arcCoordinate.distance) < Deviation_alongarcCoordinate and front_car_arcCoordinate.length < ll_merge_arcCoordinate.length:
                                                             front_car = 1
                                                             break
                                                     if front_car == 0:
-                                                        if (key, j) not in dependency_edges and (distance_b - distance_a) <= Distance_difference_max:
-                                                            dependency_edges.append((key, j))
-                                                            rightofway_info.setdefault(key, []).append(j)
+                                                        if (distance_b - distance_a) <= Distance_difference_max:
+
+                                                            if j not in conflicting_car_pair[key][Pa]:
+                                                                conflicting_car_pair[key][Pa].append(j)
+                                                            if (key, j) not in dependency_edges :
+                                                                dependency_edges.append((key, j))
+                                                                rightofway_info.setdefault(key, []).append(j)
                                                         if distance_a < distance_b:
                                                         # if car B don't have front car and car B not pass the conflicting lanelet
-                                                            if j not in calculated_pair and (j, key) not in dependency_edges:
-                                                                if ll_rightOfWay_arcCoordinate_start.length > \
+                                                            if j not in calculated_pair and ll_rightOfWay_arcCoordinate_start.length > \
                                                                         activeObjects[j].arcCoordinatesAlongPaths[Pb].length:
+                                                                if key not in conflicting_car_pair[j][Pb]:
+                                                                    conflicting_car_pair[j][Pb].append(key)
+                                                                if (j, key) not in dependency_edges:
                                                                     dependency_edges.append((j, key))
                                                         # if car B have front car ,but the front don't in the path to conflicting lanelet
-                                                            if j in calculated_pair  and (j,key) not in dependency_edges:
+                                                            if j in calculated_pair :
                                                                 front_car_j = 0
                                                                 for k in calculated_pair[j]:
                                                                     front_car_j_point = lanelet2.core.BasicPoint2d(
@@ -321,13 +336,14 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                                     front_car_j_arcCoordinate = lanelet2.geometry.toArcCoordinates(
                                                                         activeObjects[j].pathsWithInformation[
                                                                             Pb].centerline, front_car_j_point)
-                                                                    if front_car_j_arcCoordinate.distance < Deviation_alongarcCoordinate and front_car_j_arcCoordinate.length <ll_rightOfWay_arcCoordinate_start.length:
+                                                                    if abs(front_car_j_arcCoordinate.distance) < Deviation_alongarcCoordinate and front_car_j_arcCoordinate.length <ll_rightOfWay_arcCoordinate_start.length:
                                                                         front_car_j = 1
                                                                         break
-                                                                if front_car_j == 0:
-                                                                    if ll_rightOfWay_arcCoordinate_start.length > \
-                                                                            activeObjects[j].arcCoordinatesAlongPaths[
-                                                                                Pb].length:
+                                                                if front_car_j == 0 and ll_rightOfWay_arcCoordinate_start.length > \
+                                                                            activeObjects[j].arcCoordinatesAlongPaths[Pb].length:
+                                                                    if key not in conflicting_car_pair[j][Pb]:
+                                                                        conflicting_car_pair[j][Pb].append(key)
+                                                                    if (j, key) not in dependency_edges:
                                                                         dependency_edges.append((j, key))
                                             #if car B (j)is in yield lanelet      j is yield    key(a) has right
                                             else:
@@ -339,16 +355,21 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                     ll_rightOfWay_start)
                                                 # if B don't have front car
                                                 if j not in calculated_pair:
-                                                    if (j,key) not in dependency_edges and (distance_a - distance_b) <= Distance_difference_max:
-                                                        dependency_edges.append((j, key))
-                                                        rightofway_info.setdefault(j,[]).append(key)
+                                                    if (distance_a - distance_b) <= Distance_difference_max:
+                                                        if key not in conflicting_car_pair[j][Pb]:
+                                                            conflicting_car_pair[j][Pb].append(key)
+                                                        if (j, key) not in dependency_edges :
+                                                            dependency_edges.append((j, key))
+                                                            rightofway_info.setdefault(j,[]).append(key)
                                                     if distance_a > distance_b:
                                                     # if car A don't have front car and car A not pass the conflicting lanelet
-                                                        if key not in calculated_pair and  (key, j) not in dependency_edges :
-                                                            if ll_rightOfWay_arcCoordinate_start.length > activeObjects[key].arcCoordinatesAlongPaths[Pa].length:
+                                                        if key not in calculated_pair and ll_rightOfWay_arcCoordinate_start.length > activeObjects[key].arcCoordinatesAlongPaths[Pa].length:
+                                                            if j not in conflicting_car_pair[key][Pa]:
+                                                                conflicting_car_pair[key][Pa].append(j)
+                                                            if (key, j) not in dependency_edges:
                                                                 dependency_edges.append((key, j))
                                                  # if car A have front car ,but the front don't in the path to conflichting lanelet
-                                                        if key in calculated_pair  and (key,j) not in dependency_edges:
+                                                        if key in calculated_pair :
                                                             front_car_key = 0
                                                             for k in calculated_pair[key]:
                                                                 front_car_key_point = lanelet2.core.BasicPoint2d(
@@ -357,11 +378,14 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                                 front_car_key_arcCoordinate = lanelet2.geometry.toArcCoordinates(
                                                                     activeObjects[key].pathsWithInformation[Pa].centerline,
                                                                     front_car_key_point)
-                                                                if front_car_key_arcCoordinate.distance < Deviation_alongarcCoordinate and front_car_key_arcCoordinate.length < ll_rightOfWay_arcCoordinate_start.length:
+                                                                if abs(front_car_key_arcCoordinate.distance) < Deviation_alongarcCoordinate and front_car_key_arcCoordinate.length < ll_rightOfWay_arcCoordinate_start.length:
                                                                     front_car_key = 1
-                                                            if front_car_key == 0 :
-                                                                if ll_rightOfWay_arcCoordinate_start.length > \
+                                                                    break
+                                                            if front_car_key == 0 and ll_rightOfWay_arcCoordinate_start.length > \
                                                                         activeObjects[key].arcCoordinatesAlongPaths[Pa].length:
+                                                                if j not in conflicting_car_pair[key][Pa]:
+                                                                    conflicting_car_pair[key][Pa].append(j)
+                                                                if (key, j) not in dependency_edges:
                                                                     dependency_edges.append((key, j))
                                                 # if car B don't have front car before the conflicting lanelet
                                                 else:
@@ -379,21 +403,26 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                         front_car_arcCoordinate = lanelet2.geometry.toArcCoordinates(
                                                             activeObjects[j].pathsWithInformation[Pb].centerline,
                                                             car_point)
-                                                        if front_car_arcCoordinate.distance < Deviation_alongarcCoordinate and front_car_arcCoordinate.length < ll_merge_arcCoordinate.length:
+                                                        if abs(front_car_arcCoordinate.distance) < Deviation_alongarcCoordinate and front_car_arcCoordinate.length < ll_merge_arcCoordinate.length:
                                                             front_car = 1
                                                             break
                                                     if front_car == 0:
-                                                        if (j, key) not in dependency_edges and (distance_a - distance_b) <= Distance_difference_max:
-                                                            dependency_edges.append((j, key))
-                                                            rightofway_info.setdefault(j, []).append(key)
+                                                        if (distance_a - distance_b) <= Distance_difference_max:
+                                                            if key not in conflicting_car_pair[j][Pb]:
+                                                                conflicting_car_pair[j][Pb].append(key)
+                                                            if (j, key) not in dependency_edges :
+                                                                dependency_edges.append((j, key))
+                                                                rightofway_info.setdefault(j, []).append(key)
                                                         # if car A don't have front car
                                                         if distance_a > distance_b:
-                                                            if key not in calculated_pair and (key, j) not in dependency_edges:
-                                                                if ll_rightOfWay_arcCoordinate_start.length > \
+                                                            if key not in calculated_pair and ll_rightOfWay_arcCoordinate_start.length > \
                                                                         activeObjects[key].arcCoordinatesAlongPaths[Pa].length:
+                                                                if j not in conflicting_car_pair[key][Pa]:
+                                                                    conflicting_car_pair[key][Pa].append(j)
+                                                                if (key, j) not in dependency_edges:
                                                                     dependency_edges.append((key, j))
                                                         # if car A have front car ,but the front don't in the path to critical area
-                                                            if key in calculated_pair and (key, j) not in dependency_edges:
+                                                            if key in calculated_pair :
                                                                 front_car_key = 0
                                                                 for k in calculated_pair[key]:
                                                                     front_car_key_point = lanelet2.core.BasicPoint2d(
@@ -402,16 +431,17 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                                     front_car_key_arcCoordinate = lanelet2.geometry.toArcCoordinates(
                                                                         activeObjects[key].pathsWithInformation[Pa].centerline,
                                                                         front_car_key_point)
-                                                                    if front_car_key_arcCoordinate.distance < Deviation_alongarcCoordinate and front_car_key_arcCoordinate.length < ll_rightOfWay_arcCoordinate_start.length:
+                                                                    if abs(front_car_key_arcCoordinate.distance) < Deviation_alongarcCoordinate and front_car_key_arcCoordinate.length < ll_rightOfWay_arcCoordinate_start.length:
                                                                         front_car_key = 1
                                                                         break
-                                                                if front_car_key == 0:
-                                                                    if ll_rightOfWay_arcCoordinate_start.length > \
-                                                                            activeObjects[key].arcCoordinatesAlongPaths[
-                                                                                Pa].length:
+                                                                if front_car_key == 0 and ll_rightOfWay_arcCoordinate_start.length > \
+                                                                            activeObjects[key].arcCoordinatesAlongPaths[Pa].length:
+                                                                    if j not in conflicting_car_pair[key][Pa]:
+                                                                        conflicting_car_pair[key][Pa].append(j)
+                                                                    if (key, j) not in dependency_edges:
                                                                         dependency_edges.append((key, j))
 
-            #2.2 Determine dependencies based on vehicle speed and acceleration
+            #2.2 Determine dependencies based on vehicle speed and acceleration,   if the dependency has built according to right of way, then skip
                                 if abs(distance_a - distance_b) <= default_gap and ((key,j) not in dependency_edges or (j,key) not in dependency_edges):
                                     # if both car have front car
                                     if key in calculated_pair and j in calculated_pair:
@@ -422,8 +452,7 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                 track_dictionary[i].motion_states[timestamp].y)
                                             car_arc_A = lanelet2.geometry.toArcCoordinates(
                                                 activeObjects[key].pathsWithInformation[Pa].centerline, car_point_A)
-                                            if abs(
-                                                    car_arc_A.distance) < Deviation_alongarcCoordinate and car_arc_A.length in Interval(
+                                            if abs(car_arc_A.distance) < Deviation_alongarcCoordinate and car_arc_A.length in Interval(
                                                     activeObjects[key].arcCoordinatesAlongPaths[Pa].length, length_area_a,
                                                     closed=False):
                                                 front_car_A = 1
@@ -437,8 +466,7 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                     track_dictionary[k].motion_states[timestamp].y)
                                                 car_arc_B = lanelet2.geometry.toArcCoordinates(
                                                     activeObjects[j].pathsWithInformation[Pb].centerline, car_point_B)
-                                                if abs(
-                                                        car_arc_B.distance) < Deviation_alongarcCoordinate and car_arc_B.length in Interval(
+                                                if abs(car_arc_B.distance) < Deviation_alongarcCoordinate and car_arc_B.length in Interval(
                                                         activeObjects[j].arcCoordinatesAlongPaths[Pb].length, length_area_b,
                                                         closed=False):
                                                     front_car_B = 1
@@ -466,13 +494,20 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                     # if car A and car B in the first timestamp,can't calculate acceleration
                                                     # if timestamp == track_dictionary[key].time_stamp_ms_first == track_dictionary[j].time_stamp_ms_first:
                                                     if time_a - time_b > Time_difference_max:  # b j is much faster
+                                                        if j not in conflicting_car_pair[key][Pa]:
+                                                            conflicting_car_pair[key][Pa].append(j)
                                                         if (key, j) not in dependency_edges:
                                                             dependency_edges.append((key, j))
                                                     elif time_b - time_a > Time_difference_max:  # a is much faster
+                                                        if key not in conflicting_car_pair[j][Pb]:
+                                                            conflicting_car_pair[j][Pb].append(key)
                                                         if (j, key) not in dependency_edges:
                                                             dependency_edges.append((j, key))
                                                     elif (abs(time_a - time_b) < Time_difference_max):
-                                                        dependency_key_j = 1
+                                                        if key not in conflicting_car_pair[j][Pb]:
+                                                            conflicting_car_pair[j][Pb].append(key)
+                                                        if j not in conflicting_car_pair[key][Pa]:
+                                                            conflicting_car_pair[key][Pa].append(j)
                                                         if (key, j) not in dependency_edges:
                                                             dependency_edges.append((key, j))
                                                         if (j, key) not in dependency_edges:
@@ -486,8 +521,7 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                 track_dictionary[i].motion_states[timestamp].y)
                                             car_arc_A = lanelet2.geometry.toArcCoordinates(
                                                 activeObjects[key].pathsWithInformation[Pa].centerline, car_point_A)
-                                            if abs(
-                                                    car_arc_A.distance) < Deviation_alongarcCoordinate and car_arc_A.length in Interval(
+                                            if abs(car_arc_A.distance) < Deviation_alongarcCoordinate and car_arc_A.length in Interval(
                                                     activeObjects[key].arcCoordinatesAlongPaths[Pa].length, length_area_a,
                                                     closed=False):
                                                 front_car_A = 1
@@ -514,13 +548,20 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                 #if car A and car B in the first timestamp,can't calculate acceleration
                                                 #if timestamp == track_dictionary[key].time_stamp_ms_first == track_dictionary[j].time_stamp_ms_first:
                                                 if time_a - time_b > Time_difference_max:    #b j is much faster
+                                                    if j not in conflicting_car_pair[key][Pa]:
+                                                        conflicting_car_pair[key][Pa].append(j)
                                                     if(key,j) not in dependency_edges:
                                                         dependency_edges.append((key, j))
                                                 elif time_b - time_a > Time_difference_max:    # a is much faster
+                                                    if key not in conflicting_car_pair[j][Pb]:
+                                                        conflicting_car_pair[j][Pb].append(key)
                                                     if (j, key) not in dependency_edges:
                                                         dependency_edges.append((j,key))
                                                 elif (abs(time_a - time_b) < Time_difference_max):
-                                                    dependency_key_j = 1
+                                                    if key not in conflicting_car_pair[j][Pb]:
+                                                        conflicting_car_pair[j][Pb].append(key)
+                                                    if j not in conflicting_car_pair[key][Pa]:
+                                                        conflicting_car_pair[key][Pa].append(j)
                                                     if (key, j) not in dependency_edges:
                                                         dependency_edges.append((key, j))
                                                     if (j, key) not in dependency_edges:
@@ -534,8 +575,7 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                 track_dictionary[k].motion_states[timestamp].y)
                                             car_arc_B = lanelet2.geometry.toArcCoordinates(
                                                 activeObjects[j].pathsWithInformation[Pb].centerline, car_point_B)
-                                            if abs(
-                                                    car_arc_B.distance) < Deviation_alongarcCoordinate and car_arc_B.length in Interval(
+                                            if abs(car_arc_B.distance) < Deviation_alongarcCoordinate and car_arc_B.length in Interval(
                                                     activeObjects[j].arcCoordinatesAlongPaths[Pb].length, length_area_b,
                                                     closed=False):
                                                 front_car_B = 1
@@ -562,13 +602,20 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                                 # if car A and car B in the first timestamp,can't calculate acceleration
                                                 # if timestamp == track_dictionary[key].time_stamp_ms_first == track_dictionary[j].time_stamp_ms_first:
                                                 if time_a - time_b > Time_difference_max:  # b j is much faster
+                                                    if j not in conflicting_car_pair[key][Pa]:
+                                                        conflicting_car_pair[key][Pa].append(j)
                                                     if (key, j) not in dependency_edges:
                                                         dependency_edges.append((key, j))
                                                 elif time_b - time_a > Time_difference_max:  # a is much faster
+                                                    if key not in conflicting_car_pair[j][Pb]:
+                                                        conflicting_car_pair[j][Pb].append(key)
                                                     if (j, key) not in dependency_edges:
                                                         dependency_edges.append((j, key))
                                                 elif (abs(time_a - time_b) < Time_difference_max):
-                                                    dependency_key_j = 1
+                                                    if key not in conflicting_car_pair[j][Pb]:
+                                                        conflicting_car_pair[j][Pb].append(key)
+                                                    if j not in conflicting_car_pair[key][Pa]:
+                                                        conflicting_car_pair[key][Pa].append(j)
                                                     if (key, j) not in dependency_edges:
                                                         dependency_edges.append((key, j))
                                                     if (j, key) not in dependency_edges:
@@ -596,13 +643,20 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
                                             # if car A and car B in the first timestamp,can't calculate acceleration
                                             # if timestamp == track_dictionary[key].time_stamp_ms_first == track_dictionary[j].time_stamp_ms_first:
                                             if time_a - time_b > Time_difference_max:  # b j is much faster
+                                                if j not in conflicting_car_pair[key][Pa]:
+                                                    conflicting_car_pair[key][Pa].append(j)
                                                 if (key, j) not in dependency_edges:
                                                     dependency_edges.append((key, j))
                                             elif time_b - time_a > Time_difference_max:  # a is much faster
+                                                if key not in conflicting_car_pair[j][Pb]:
+                                                    conflicting_car_pair[j][Pb].append(key)
                                                 if (j, key) not in dependency_edges:
                                                     dependency_edges.append((j, key))
                                             elif (abs(time_a - time_b) < Time_difference_max):
-                                                dependency_key_j = 1
+                                                if key not in conflicting_car_pair[j][Pb]:
+                                                    conflicting_car_pair[j][Pb].append(key)
+                                                if j not in conflicting_car_pair[key][Pa]:
+                                                    conflicting_car_pair[key][Pa].append(j)
                                                 if (key, j) not in dependency_edges:
                                                     dependency_edges.append((key, j))
                                                 if (j, key) not in dependency_edges:
@@ -610,7 +664,18 @@ def dependency_calculate(activeObjects,track_dictionary,timestamp,default_gap,De
 
             #after iterate all paths for key
             if not paired or key not in paired:
-                paired[key] = car_list  # key is center car id,  value is the other cars list, which it depends on
+                paired[key] = car_list  # key is center car id,  value is the other cars list, which has been calculated
 
-    return dependency_node,dependency_edges,rightofway_info
+    return dependency_node,dependency_edges,rightofway_info,front_car_pair,conflicting_car_pair
+
+
+
+
+
+
+
+
+
+
+
 

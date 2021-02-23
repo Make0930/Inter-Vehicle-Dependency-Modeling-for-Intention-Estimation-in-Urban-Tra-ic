@@ -5,10 +5,10 @@ import lanelet2.core
 import lanelet2.geometry
 import lanelet2.routing
 
-def possiblepath_calculate(matching,map_graph,pathLengthLimit,pathLengthDifference):
+def possiblepath_calculate(matching,map_graph,pathLengthLimit):
     Pathset = []
     PathLength = []
-    Longer_path_index = []
+    #Longer_path_index = []
 
     if matching is None:
         return []
@@ -32,14 +32,14 @@ def possiblepath_calculate(matching,map_graph,pathLengthLimit,pathLengthDifferen
                 stack.append(path + [ll])
                 stack.append(length + lanelet2.geometry.length2d(ll))
 
-    for i in range(len(Pathset)-1):
-        for j in range(i + 1,len(Pathset)):
-            if Pathset[i][-1] == Pathset[j][-1] and abs(PathLength[i] - PathLength[j]) > pathLengthDifference:
-                if PathLength[i] > PathLength[j]:
-                    Longer_path_index.append(i)
-                else:
-                    Longer_path_index.append(j)
-    if Longer_path_index:
-        for k in Longer_path_index:  #czxc
-            del Pathset[k - Longer_path_index.index(k)]
+    # for i in range(len(Pathset)-1):
+    #     for j in range(i + 1,len(Pathset)):
+    #         if Pathset[i][-1] == Pathset[j][-1] and abs(PathLength[i] - PathLength[j]) > pathLengthDifference:
+    #             if PathLength[i] > PathLength[j]:
+    #                 Longer_path_index.append(i)
+    #             else:
+    #                 Longer_path_index.append(j)
+    # if Longer_path_index:
+    #     for k in Longer_path_index:  #czxc
+    #         del Pathset[k - Longer_path_index.index(k)]
     return Pathset
