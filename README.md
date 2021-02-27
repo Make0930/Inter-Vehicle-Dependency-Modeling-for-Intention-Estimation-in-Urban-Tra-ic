@@ -2,14 +2,15 @@
 
 Prototype implementation of vehicle prediction in Python.
 
-## real time dependency_visualization
- src/interaction_dataset_interface/processing_dependency_visualization.py 
+
+## data_visualization
+src/data_visualization/real_time_arc_distance_visualization.py
+
+src/data_visualization/real_time_orientation_visualization.py
+
+src/data_visualization/real_time_velocity_acceleration_visualization.py
 
 
-## real time orientation_visualization
- src/interaction_dataset_interface/processing_orientation_visualization.py
-
-
-## real time arc distance visualization.py
- src/interaction_dataset_interface/real_time_arc_distance_visualization.py.py
+## dependency visualization and intention initialization
+src/interaction_dataset_interface/dependency_visualize_and_intention_initialize.py
  
